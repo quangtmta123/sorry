@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gửi Bạn Của Tui 💗</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-outer: #fff5f8;
+      --bg-gradient-1: #ffffff;
+      --bg-gradient-2: #ffeef4;
+      --card-bg: #fffafc;
+      --card-border: #ffc6d9;
+      --pink-primary: #f26494;
+      --pink-primary-hover: #e45082;
+      --pink-soft: #ffe3ed;
+      --pink-muted: #f7b2ca;
+      --text-heading: #f26494;
+      --text-body: #a64465;
+      --text-subtle: #c97a95;
+      --shadow-soft: 0 18px 45px rgba(242, 100, 148, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      background: radial-gradient(circle at top left, var(--bg-gradient-1) 0%, var(--bg-outer) 50%, var(--bg-gradient-2) 100%);
+      color: var(--text-body);
+      overflow: hidden;
+      position: relative;
+      user-select: none;
+    }
+
+    #ambientCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Nút bật/tắt nhạc góc trên bên phải */
+    .music-toggle {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 20;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 15px;
+      border-radius: 999px;
+      background: rgba(255, 250, 252, 0.92);
+      border: 1.5px solid var(--card-border);
+      color: var(--text-body);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(242, 100, 148, 0.12);
+      backdrop-filter: blur(6px);
+      transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .music-toggle:hover {
+      background: #ffeef4;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 22px rgba(242, 100, 148, 0.2);
+    }
+
+    .music-toggle.playing .music-icon {
+      display: inline-block;
+      animation: gentlePulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes gentlePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.22); }
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 540px;
+      min-height: 520px;
+      background: var(--card-bg);
+      border: 3px solid var(--card-border);
+      border-radius: 26px;
+      padding: 40px 32px;
+      box-shadow: var(--shadow-soft);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
+    }
+
+    .page {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .page.hidden {
+      opacity: 0;
+      transform: translateY(14px) scale(0.97);
+      pointer-events: none;
+      position: absolute;
+      visibility: hidden;
+    }
+
+    .page.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      position: relative;
+      visibility: visible;
+    }
+
+    .emote-box {
+      width: 190px;
+      height: 190px;
+      border-radius: 22px;
+      background: linear-gradient(145deg, #fff0f5, #ffe2ec);
+      border: 2px solid #ffd4e3;
+      box-shadow: 0 10px 25px rgba(242, 100, 148, 0.14);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+      overflow: hidden;
+      position: relative;
+      animation: floatEmote 3.2s ease-in-out infinite;
+    }
+
+    .emote-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    @keyframes floatEmote {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    h1.title {
+      font-size: clamp(1.35rem, 4vw, 1.75rem);
+      font-weight: 700;
+      color: var(--text-heading);
+      line-height: 1.45;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+
+    .subtitle-hint {
+      font-size: 0.85rem;
+      color: var(--text-subtle);
+      min-height: 22px;
+      margin-bottom: 28px;
+      transition: opacity 0.25s ease;
+    }
+
+    .button-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      width: 100%;
+      min-height: 54px;
+    }
+
+    .btn-yes {
+      background: linear-gradient(135deg, #ff7aa6, #f26494);
+      color: #ffffff;
+      border: none;
+      border-radius: 999px;
+      padding: 13px 34px;
+      font-family: inherit;
+      font-size: 0.98rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(242, 100, 148, 0.28);
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                  box-shadow 0.28s ease,
+                  background 0.28s ease;
+      z-index: 2;
+    }
+
+    .btn-yes:hover {
+      background: linear-gradient(135deg, #f76898, #e45082);
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 12px 26px rgba(242, 100, 148, 0.36);
+    }
+
+    .btn-yes:active {
+      transform: scale(0.98);
+    }
+
+    .btn-no {
+      background: #fff0f5;
+      color: #c97a95;
+      border: 1px solid #f7c6d7;
+      border-radius: 999px;
+      padding: 4px 11px;
+      font-family: inherit;
+      font-size: 0.7rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      z-index: 3;
+      transition: left 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+                  top 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.2s ease,
+                  background 0.2s ease;
+    }
+
+    .btn-no:hover {
+      background: #ffe3ed;
+    }
+
+    .apology-content {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      max-width: 440px;
+    }
+
+    .apology-content p {
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: var(--text-body);
+      font-weight: 400;
+    }
+
+    .burst-heart {
+      position: fixed;
+      pointer-events: none;
+      z-index: 99;
+      font-size: 18px;
+      animation: flyUp 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes flyUp {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(0.6);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) scale(1.25);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 32px 20px;
+        min-height: 480px;
+      }
+      .emote-box {
+        width: 165px;
+        height: 165px;
+      }
+      .apology-content p {
+        font-size: 0.82rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="ambientCanvas"></canvas>
+
+  <!-- Trình phát nhạc nền -->
+  <audio id="bgMusic" loop preload="auto">
+    <source src="music.mp3" type="audio/mpeg" />
+  </audio>
+
+  <button type="button" class="music-toggle" id="musicToggle" aria-label="Bật hoặc tắt nhạc nền">
+    <span class="music-icon" id="musicIcon">🔇</span>
+    <span id="musicText">Bật nhạc</span>
+  </button>
+
+  <main class="card" id="mainCard">
+    <!-- TRANG 1: CÂU HỎI XIN LỖI -->
+    <section class="page active" id="page1">
+      <div class="emote-box">
+        <img src="image_1.png" alt="Mèo Xin lũii" id="sorryImg" onerror="this.src='https://placehold.co/190x190/ffeef4/f26494?text=Xin+l%C5%A9ii+🐱'"/>
+      </div>
+
+      <h1 class="title">Bạn sẽ tha thứ cho tui chứ?</h1>
+      <p class="subtitle-hint" id="hintText">Tui biết lỗi rồi mà, cho tui xin lỗi nha...</p>
+
+      <div class="button-group" id="btnGroup">
+        <button type="button" class="btn-yes" id="yesBtn">Có</button>
+        <button type="button" class="btn-no" id="noBtn">Không</button>
+      </div>
+    </section>
+
+    <!-- TRANG 2: LỜI CẢM ƠN & XIN LỖI CHÂN THÀNH -->
+    <section class="page hidden" id="page2">
+      <div class="emote-box">
+        <img src="image_2.png" alt="Cảm ơn bạn" id="thankYouImg" onerror="this.src='https://placehold.co/190x190/ffeef4/f26494?text=Love+You+🌹'"/>
+      </div>
+
+      <h1 class="title">I knew you would forgive me! 💗</h1>
+
+      <div class="apology-content">
+        <p>
+          Cảm ơn bạn thật nhiều vì đã bao dung và tha thứ cho tui. Tui chân thành xin lỗi vì những lời nói hay hành động thiếu tinh tế vừa qua đã khiến bạn phiền lòng — dù không cố ý, nhưng cảm xúc của bạn luôn rất đáng được tôn trọng.
+        </p>
+        <p>
+          Tui rất trân quý tình bạn của tụi mình và không muốn làm bạn buồn thêm lần nào nữa. Tui sẽ học cách lắng nghe nhiều hơn, cư xử nhẹ nhàng và cẩn trọng hơn. Cảm ơn bạn vì đã ở lại và cho tui cơ hội sửa sai.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const mainCard = document.getElementById('mainCard');
+    const page1 = document.getElementById('page1');
+    const page2 = document.getElementById('page2');
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn = document.getElementById('noBtn');
+    const hintText = document.getElementById('hintText');
+
+    // Quản lý nhạc nền
+    const bgMusic = document.getElementById('bgMusic');
+    const musicToggle = document.getElementById('musicToggle');
+    const musicIcon = document.getElementById('musicIcon');
+    const musicText = document.getElementById('musicText');
+
+    let isPlaying = false;
+    let userManuallyPaused = false;
+
+    function updateMusicUI(playing) {
+      isPlaying = playing;
+      if (playing) {
+        musicToggle.classList.add('playing');
+        musicIcon.textContent = '🎵';
+        musicText.textContent = 'Đang phát';
+      } else {
+        musicToggle.classList.remove('playing');
+        musicIcon.textContent = '🔇';
+        musicText.textContent = 'Bật nhạc';
+      }
+    }
+
+    function playMusic() {
+      if (!bgMusic || isPlaying) return;
+      bgMusic.volume = 0.55; // Âm lượng dịu vừa phải (55%)
+      bgMusic.play()
+        .then(() => updateMusicUI(true))
+        .catch(() => updateMusicUI(false));
+    }
+
+    musicToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isPlaying) {
+        bgMusic.pause();
+        userManuallyPaused = true;
+        updateMusicUI(false);
+      } else {
+        userManuallyPaused = false;
+        playMusic();
+      }
+    });
+
+    // Tự động phát nhạc ngay lần chạm/click đầu tiên vào trang
+    ['click', 'touchstart'].forEach((evt) => {
+      document.addEventListener(evt, () => {
+        if (!isPlaying && !userManuallyPaused) {
+          playMusic();
+        }
+      }, { passive: true });
+    });
+
+    const playfulHints = [
+      'Ơ kìa, đừng bấm nút đó mà 🥺',
+      'Nút này bị hỏng rồi, thử nút bên cạnh đi!',
+      'Suýt nữa thì trúng rồi đó hehe...',
+      'Thôi mà, tha thứ cho tui đi nha 🌷',
+      'Nút "Có" dễ bấm hơn nhiều luôn á!'
+    ];
+
+    let dodgeCount = 0;
+    let isDetached = false;
+
+    function moveNoButton(pointerX = null, pointerY = null) {
+      const cardRect = mainCard.getBoundingClientRect();
+      const btnRect = noBtn.getBoundingClientRect();
+      const yesRect = yesBtn.getBoundingClientRect();
+
+      if (!isDetached) {
+        const currentLeft = btnRect.left - cardRect.left;
+        const currentTop = btnRect.top - cardRect.top;
+        noBtn.style.position = 'absolute';
+        noBtn.style.left = `${currentLeft}px`;
+        noBtn.style.top = `${currentTop}px`;
+        isDetached = true;
+      }
+
+      const padding = 22;
+      const maxLeft = cardRect.width - btnRect.width - padding;
+      const maxTop = cardRect.height - btnRect.height - padding;
+
+      const yesLocal = {
+        left: yesRect.left - cardRect.left - 16,
+        right: yesRect.right - cardRect.left + 16,
+        top: yesRect.top - cardRect.top - 16,
+        bottom: yesRect.bottom - cardRect.top + 16
+      };
+
+      let nextLeft = padding;
+      let nextTop = padding;
+      let attempts = 0;
+
+      do {
+        nextLeft = padding + Math.random() * Math.max(10, maxLeft - padding);
+        nextTop = padding + Math.random() * Math.max(10, maxTop - padding);
+        attempts++;
+
+        const overlapsYes =
+          nextLeft < yesLocal.right &&
+          nextLeft + btnRect.width > yesLocal.left &&
+          nextTop < yesLocal.bottom &&
+          nextTop + btnRect.height > yesLocal.top;
+
+        const distFromCurrent = Math.hypot(
+          nextLeft - parseFloat(noBtn.style.left || 0),
+          nextTop - parseFloat(noBtn.style.top || 0)
+        );
+
+        let distFromPointer = 999;
+        if (pointerX !== null && pointerY !== null) {
+          const localPx = pointerX - cardRect.left;
+          const localPy = pointerY - cardRect.top;
+          distFromPointer = Math.hypot(
+            nextLeft + btnRect.width / 2 - localPx,
+            nextTop + btnRect.height / 2 - localPy
+          );
+        }
+
+        if (!overlapsYes && distFromCurrent > 95 && distFromPointer > 85) {
+          break;
+        }
+      } while (attempts < 40);
+
+      requestAnimationFrame(() => {
+        noBtn.style.left = `${nextLeft}px`;
+        noBtn.style.top = `${nextTop}px`;
+      });
+
+      hintText.textContent = playfulHints[dodgeCount % playfulHints.length];
+      dodgeCount++;
+      const yesScale = Math.min(1 + dodgeCount * 0.035, 1.24);
+      yesBtn.style.transform = `scale(${yesScale})`;
+    }
+
+    noBtn.addEventListener('mouseenter', (e) => moveNoButton(e.clientX, e.clientY));
+    noBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (!isPlaying && !userManuallyPaused) playMusic();
+      const touch = e.touches[0];
+      moveNoButton(touch.clientX, touch.clientY);
+    }, { passive: false });
+    noBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      moveNoButton(e.clientX, e.clientY);
+    });
+
+    mainCard.addEventListener('mousemove', (e) => {
+      if (page1.classList.contains('hidden')) return;
+      const rect = noBtn.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.hypot(e.clientX - centerX, e.clientY - centerY);
+      if (distance < 46) {
+        moveNoButton(e.clientX, e.clientY);
+      }
+    });
+
+    function createHeartBurst(originX, originY) {
+      const icons = ['💗', '🌸', '💖', '✨'];
+      for (let i = 0; i < 18; i++) {
+        const el = document.createElement('span');
+        el.className = 'burst-heart';
+        el.textContent = icons[i % icons.length];
+        const angle = (Math.PI * 2 * i) / 18 + (Math.random() - 0.5) * 0.4;
+        const distance = 70 + Math.random() * 110;
+        el.style.left = `${originX}px`;
+        el.style.top = `${originY}px`;
+        el.style.setProperty('--dx', `${Math.cos(angle) * distance}px`);
+        el.style.setProperty('--dy', `${Math.sin(angle) * distance - 40}px`);
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1450);
+      }
+    }
+
+    yesBtn.addEventListener('click', (e) => {
+      if (!isPlaying && !userManuallyPaused) playMusic();
+      const rect = yesBtn.getBoundingClientRect();
+      const cx = e.clientX || rect.left + rect.width / 2;
+      const cy = e.clientY || rect.top + rect.height / 2;
+      createHeartBurst(cx, cy);
+
+      page1.classList.remove('active');
+      page1.classList.add('hidden');
+
+      setTimeout(() => {
+        page2.classList.remove('hidden');
+        page2.classList.add('active');
+      }, 180);
+    });
+
+    const canvas = document.getElementById('ambientCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    for (let i = 0; i < 24; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: 2 + Math.random() * 3.5,
+        speedY: 0.25 + Math.random() * 0.45,
+        drift: (Math.random() - 0.5) * 0.35,
+        alpha: 0.25 + Math.random() * 0.35
+      });
+    }
+
+    function animateAmbient() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(242, 100, 148, ${p.alpha})`;
+        ctx.fill();
+
+        p.y -= p.speedY;
+        p.x += p.drift;
+
+        if (p.y < -10) {
+          p.y = canvas.height + 10;
+          p.x = Math.random() * canvas.width;
+        }
+      }
+      requestAnimationFrame(animateAmbient);
+    }
+    animateAmbient();
+  </script>
+</body>
+</html>
